@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Storage Partner Parcels</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#07080b;font-family:'DM Mono',monospace}
+
+#card{width:100%;height:100vh;display:flex;flex-direction:column;background:#07080b;border:1px solid #1c1f2b}
+
+#head{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:#0b0d13;border-bottom:1px solid #1c1f2b;flex-shrink:0;gap:12px;flex-wrap:wrap}
+#title{font-family:'Syne',sans-serif;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#e2e8f0;display:flex;align-items:center;gap:9px}
+.dot{width:7px;height:7px;border-radius:50%;background:#06b6d4;box-shadow:0 0 7px rgba(6,182,212,.7);animation:p 2.4s infinite;flex-shrink:0}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.25}}
+#title span{color:#06b6d4}
+#stats{display:flex;gap:20px}
+.st .v{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#06b6d4;line-height:1;display:block}
+.st .l{font-size:8px;color:#475569;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+
+#filters{display:flex;align-items:center;gap:8px;padding:9px 20px;background:#07080b;border-bottom:1px solid #1c1f2b;flex-shrink:0;flex-wrap:wrap}
+select{background:#0f1117;border:1px solid #1e2536;color:#94a3b8;font-family:'DM Mono',monospace;font-size:10px;padding:5px 9px;border-radius:4px;cursor:pointer;outline:none;appearance:none}
+select:focus{border-color:#06b6d4}
+.rst{background:transparent;border:1px solid #1e2536;color:#475569;font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:4px;cursor:pointer}
+.rst:hover{border-color:#06b6d4;color:#06b6d4}
+
+#map{flex:1;width:100%}
+
+#foot{padding:8px 20px;background:#0b0d13;border-top:1px solid #1c1f2b;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#foot-l{font-size:9px;color:#1e2536;letter-spacing:.04em}
+#foot-r{font-size:9px;color:#06b6d4;font-weight:600;letter-spacing:.08em}
+
+.leaflet-popup-content-wrapper{background:rgba(9,10,14,.97)!important;border:1px solid #1e2536!important;border-radius:6px!important;box-shadow:0 12px 40px rgba(0,0,0,.9)!important}
+.leaflet-popup-content{color:#e2e8f0!important;font-family:'DM Mono',monospace!important;font-size:11px!important;line-height:1.65!important;margin:10px 14px!important}
+.leaflet-popup-tip{background:rgba(9,10,14,.97)!important}
+.leaflet-popup-close-button{color:#475569!important}
+.pa{color:#06b6d4;font-weight:600;margin-bottom:3px}
+.pm{color:#475569;font-size:10px}
+
+@media(max-width:600px){
+  #filters{display:none}
+  #stats{gap:14px}
+  .st .v{font-size:14px}
+}
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="head">
+    <div id="title"><div class="dot"></div>SCM <span>Storage Partner</span> Parcels</div>
+    <div id="stats">
+      <div class="st"><span class="v" id="sv-l">—</span><div class="l">Locations</div></div>
+      <div class="st"><span class="v" id="sv-s">—</span><div class="l">States</div></div>
+      <div class="st"><span class="v" id="sv-m">—</span><div class="l">Markets</div></div>
+    </div>
+  </div>
+  <div id="filters">
+    <select id="f-s"><option value="">All States</option></select>
+    <select id="f-m"><option value="">All Markets</option></select>
+    <button class="rst" id="f-r">Reset</button>
+  </div>
+  <div id="map"></div>
+  <div id="foot">
+    <span id="foot-l">© SCM Advisors · All rights reserved</span>
+    <span id="foot-r" id="foot-r">—</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+var D=[
+  {la:33.114,lo:-96.951,a:"1251 W Exchange Pkwy",c:"Allen",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:33.027,lo:-96.929,a:"4321 Creek Valley Blvd",c:"Carrollton",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.604,lo:-97.055,a:"700 Debbie Lane",c:"Arlington",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.678,lo:-97.141,a:"2130 W Pleasant Ridge Rd",c:"Arlington",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:33.037,lo:-96.877,a:"4201 Paige Road",c:"The Colony",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.657,lo:-96.908,a:"3205 Gannon Lane",c:"Dallas",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.676,lo:-96.908,a:"1410 N Duncanville Rd",c:"Duncanville",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.570,lo:-96.828,a:"1460 S Interstate 35 E",c:"Lancaster",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.940,lo:-96.807,a:"570 Country Club Road",c:"Wylie",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.919,lo:-96.925,a:"2444 Luna Road",c:"Carrollton",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:33.005,lo:-96.694,a:"525 N Avenue",c:"Plano",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:33.131,lo:-86.664,a:"2129 Chelsea Blvd",c:"Allen",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:32.920,lo:-97.319,a:"3645 N Houston School Rd",c:"Lancaster",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:33.300,lo:-96.996,a:"6404 Highway 78",c:"Sachse",s:"TX",m:"Dallas-Fort Worth, TX-OK"},
+  {la:40.666,lo:-73.924,a:"1151 E New York Ave",c:"Brooklyn",s:"NY",m:"New York City"},
+  {la:40.727,lo:-73.712,a:"251-63 Jericho Tpke",c:"Bellerose",s:"NY",m:"New York City"},
+  {la:40.703,lo:-73.773,a:"186-02 Jamaica Ave",c:"Jamaica",s:"NY",m:"New York City"},
+  {la:40.763,lo:-73.906,a:"2301 Tillotson Ave",c:"Bronx",s:"NY",m:"New York City"},
+  {la:40.770,lo:-73.902,a:"1701 Florida Ave",c:"Bronx",s:"NY",m:"New York City"},
+  {la:40.767,lo:-73.905,a:"444 W 55th St",c:"New York",s:"NY",m:"New York City"},
+  {la:40.770,lo:-73.900,a:"2225 46th St",c:"Astoria",s:"NY",m:"New York City"},
+  {la:40.867,lo:-73.905,a:"3080 Exterior St",c:"Bronx",s:"NY",m:"New York City"},
+  {la:40.857,lo:-73.906,a:"3158 Mcdonald Ave",c:"Brooklyn",s:"NY",m:"New York City"},
+  {la:40.752,lo:-73.974,a:"34-38 30th St",c:"Long Island City",s:"NY",m:"New York City"},
+  {la:38.918,lo:-77.039,a:"1701 Florida Ave NW",c:"Washington",s:"DC",m:"Washington-Baltimore, DC-MD-VA-WV"},
+  {la:38.900,lo:-77.050,a:"223 Mill St",c:"Vienna",s:"VA",m:"Washington-Baltimore, DC-MD-VA-WV"},
+  {la:38.844,lo:-77.003,a:"2087 Hempstead Tpke",c:"East Meadow",s:"NY",m:"Washington-Baltimore, DC-MD-VA-WV"},
+  {la:38.884,lo:-77.026,a:"2645 Shirlington Rd",c:"Arlington",s:"VA",m:"Washington-Baltimore, DC-MD-VA-WV"},
+  {la:42.379,lo:-71.222,a:"96 Linden St",c:"Waltham",s:"MA",m:"Boston-Worcester-Providence, MA-RI-NH-CT"},
+  {la:42.354,lo:-71.197,a:"3068 Cropsey Ave",c:"Newton",s:"MA",m:"Boston-Worcester-Providence, MA-RI-NH-CT"},
+  {la:42.354,lo:-71.197,a:"255 Newtonville Ave",c:"Newton",s:"MA",m:"Boston-Worcester-Providence, MA-RI-NH-CT"},
+  {la:40.089,lo:-75.410,a:"400 Guthrie Road",c:"King Of Prussia",s:"PA",m:"Philadelphia-Reading-Camden, PA-NJ-DE-MD"},
+  {la:40.623,lo:-74.031,a:"186 East 22nd St",c:"Bayonne",s:"NJ",m:"New York-Newark, NY-NJ-CT-PA Suburbs"},
+  {la:40.628,lo:-74.131,a:"1074 Raritan Rd",c:"Clark",s:"NJ",m:"New York-Newark, NY-NJ-CT-PA Suburbs"},
+  {la:40.675,lo:-73.906,a:"750 W Merrick Rd",c:"Valley Stream",s:"NY",m:"New York-Newark, NY-NJ-CT-PA Suburbs"},
+  {la:45.205,lo:-93.367,a:"1101 North St",c:"Anoka",s:"MN",m:"Minneapolis-St. Paul, MN-WI"},
+  {la:34.121,lo:-117.492,a:"14337 Baseline Ave",c:"Fontana",s:"CA",m:"Los Angeles-Long Beach, CA"},
+  {la:33.730,lo:-117.730,a:"7723 Milliken Ave",c:"Rancho Cucamonga",s:"CA",m:"Los Angeles-Long Beach, CA"},
+  {la:33.569,lo:-117.208,a:"24335 Monroe Ave",c:"Murrieta",s:"CA",m:"Los Angeles-Long Beach, CA"},
+  {la:34.063,lo:-117.127,a:"1680 W Redlands Blvd",c:"Redlands",s:"CA",m:"Los Angeles-Long Beach, CA"},
+  {la:33.002,lo:-117.273,a:"801 Birmingham Dr",c:"Cardiff",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"},
+  {la:32.988,lo:-117.018,a:"12305 World Trade Dr",c:"San Diego",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"},
+  {la:33.143,lo:-117.026,a:"366 W El Norte Pkwy",c:"Escondido",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"},
+  {la:32.964,lo:-117.039,a:"14254 Poway Road",c:"Poway",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"},
+  {la:33.010,lo:-117.099,a:"10999 Willow Ct",c:"San Diego",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"},
+  {la:32.813,lo:-117.097,a:"235 E Carmel St",c:"San Marcos",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"},
+  {la:32.913,lo:-117.019,a:"10715 Scripps Ranch Blvd",c:"San Diego",s:"CA",m:"San Diego-Chula Vista-Carlsbad, CA"}
+];
+
+var map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView([39.5,-98.35],4);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a> © <a href="https://carto.com">CartoDB</a>',
+  maxZoom:19
+}).addTo(map);
+
+var cl=L.markerClusterGroup({
+  chunkedLoading:true,maxClusterRadius:55,showCoverageOnHover:false,spiderfyOnMaxZoom:true,
+  iconCreateFunction:function(c){
+    var n=c.getChildCount(),sz=n>99?42:38;
+    return L.divIcon({
+      html:'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.4);display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;font-size:11px;color:#e2e8f0;box-shadow:0 0 10px rgba(6,182,212,.2)">'+n+'</div>',
+      className:'',iconSize:[sz,sz]
+    });
+  }
+});
+map.addLayer(cl);
+
+var icon=L.divIcon({
+  className:'',
+  html:'<div style="width:8px;height:8px;border-radius:50%;background:#06b6d4;border:1px solid rgba(6,182,212,.35);box-shadow:0 0 6px rgba(6,182,212,.5)"></div>',
+  iconSize:[8,8],iconAnchor:[4,4]
+});
+
+var states=[...new Set(D.map(function(p){return p.s}))].sort();
+var markets=[...new Set(D.map(function(p){return p.m}))].sort();
+function pop(id,arr){var s=document.getElementById(id);arr.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o)})}
+pop('f-s',states);pop('f-m',markets);
+
+function plot(data){
+  cl.clearLayers();
+  data.forEach(function(p){
+    var m=L.marker([p.la,p.lo],{icon:icon});
+    var addr=[p.a,p.c,p.s].filter(Boolean).join(', ');
+    m.bindPopup('<div class="pa">'+addr+'</div><div class="pm">'+p.m+'</div>');
+    cl.addLayer(m);
+  });
+  document.getElementById('sv-l').textContent=data.length;
+  document.getElementById('sv-s').textContent=[...new Set(data.map(function(p){return p.s}))].length;
+  document.getElementById('sv-m').textContent=[...new Set(data.map(function(p){return p.m}))].length;
+  document.getElementById('foot-r').textContent=data.length+' locations';
+  try{map.fitBounds(cl.getBounds(),{padding:[40,40]})}catch(e){}
+}
+
+function filt(){
+  var s=document.getElementById('f-s').value,m=document.getElementById('f-m').value;
+  plot(D.filter(function(p){return(!s||p.s===s)&&(!m||p.m===m)}));
+}
+document.getElementById('f-s').addEventListener('change',filt);
+document.getElementById('f-m').addEventListener('change',filt);
+document.getElementById('f-r').onclick=function(){document.getElementById('f-s').value='';document.getElementById('f-m').value='';filt()};
+
+plot(D);
+</script>
+</body>
+</html>
