@@ -43,7 +43,7 @@ select:focus{border-color:#06b6d4}
   <div id="head">
     <div id="title"><div class="dot"></div>SCM <span>Verified Partner Parcels</span></div>
     <div id="stats">
-      <div class="st"><span class="v" id="sv-l">—</span><div class="l">Locations</div></div>
+      <div class="st"><span class="v" id="sv-l">—</span><div class="l">Site Index</div></div>
       <div class="st"><span class="v" id="sv-s">—</span><div class="l">States</div></div>
       <div class="st"><span class="v" id="sv-m">—</span><div class="l">Markets</div></div>
     </div>
@@ -87,7 +87,7 @@ function plot(data){
   document.getElementById('sv-l').textContent=data.length.toLocaleString();
   document.getElementById('sv-s').textContent=[...new Set(data.map(function(p){return p.s}))].length;
   document.getElementById('sv-m').textContent=[...new Set(data.map(function(p){return p.m}))].length;
-  document.getElementById('foot-r').textContent=data.length.toLocaleString()+' locations';
+  document.getElementById('foot-r').textContent=data.length.toLocaleString()+' sites';
   try{map.fitBounds(cl.getBounds(),{padding:[40,40],maxZoom:8})}catch(e){}
 }
 function filt(){
